@@ -1,0 +1,33 @@
+# Root .gitignore for pinjam-kuy-code
+# Frontend & backend dependencies
+Pinjam-Kuy-main/node_modules/
+Pinjam-Kuy-main/be-pinjam-master/node_modules/
+
+# Build / dist artifacts
+Pinjam-Kuy-main/build/
+Pinjam-Kuy-main/dist/
+
+# Caches
+Pinjam-Kuy-main/node_modules/.cache/
+Pinjam-Kuy-main/.cache/
+**/.cache/
+**/*.pack
+
+# Uploads & runtime generated files
+Pinjam-Kuy-main/be-pinjam-master/uploads/
+
+# Environment files
+Pinjam-Kuy-main/.env*
+Pinjam-Kuy-main/be-pinjam-master/.env*
+
+# Logs
+*.log
+*.log.*
+
+# Editor / OS noise
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
