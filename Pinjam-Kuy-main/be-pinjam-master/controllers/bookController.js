@@ -103,8 +103,11 @@ exports.createBook = async (req, res) => {
     const pool = getDBPool(req);
     const { title, kodeBuku, author, publisher, publicationYear, totalStock, category, location, description } = req.body;
     
-    // Ambil nama file dari Multer
-    const imageFileName = req.file ? req.file.filename : null; 
+    // Ambil nama file / URL dari Multer (Cloudinary jika aktif)
+    let imageFileName = null;
+    if (req.file) {
+        imageFileName = req.file.cloudinaryUrl ? req.file.cloudinaryUrl : req.file.filename;
+    }
 
     if (!title || !kodeBuku || !author || !totalStock || !category || !location) {
         // Jika validasi gagal, hapus file yang sudah terupload
@@ -145,7 +148,7 @@ exports.updateBook = async (req, res) => {
     const { title, kodeBuku, author, publisher, publicationYear, totalStock, category, location, description, currentImageFileName } = req.body;
 
     // Ambil nama file baru dari Multer (jika ada upload baru)
-    const newImageFileName = req.file ? req.file.filename : null;
+    const newImageFileName = req.file ? (req.file.cloudinaryUrl ? req.file.cloudinaryUrl : req.file.filename) : null;
 
     if (!title || !kodeBuku || !author || !totalStock || !category || !location) {
          // Jika validasi gagal, hapus file yang sudah terupload
@@ -188,8 +191,9 @@ exports.updateBook = async (req, res) => {
         // Tentukan nama file yang akan disimpan
         let finalImageFileName = oldImageFileName;
         if (newImageFileName) {
-            // Ada upload baru, hapus gambar lama
-            if (oldImageFileName) await deleteOldImage(oldImageFileName);
+            // Jika sebelumnya lokal dan sekarang Cloudinary, atau sama-sama lokal -> hapus lama (hanya jika bukan URL Cloudinary)
+            const wasLocal = oldImageFileName && !/^https?:\/\//i.test(oldImageFileName);
+            if (wasLocal && oldImageFileName) await deleteOldImage(oldImageFileName);
             finalImageFileName = newImageFileName;
         } 
         

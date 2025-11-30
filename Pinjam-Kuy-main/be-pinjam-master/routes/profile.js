@@ -151,7 +151,11 @@ router.post('/initiate-fines', async (req, res) => {
 
 // Upload bukti pembayaran -> set pending_verification
 const multer = require('multer');
-const fineProofStorage = multer.diskStorage({
+// Gunakan Cloudinary jika aktif untuk bukti pembayaran denda
+let cloudinary; try { cloudinary = require('../config/cloudinary'); } catch { cloudinary = null; }
+const useCloudinaryFine = process.env.USE_CLOUDINARY === 'true' && cloudinary;
+
+const fineProofStorage = useCloudinaryFine ? multer.memoryStorage() : multer.diskStorage({
     destination: (req,file,cb)=>{
         const dir = path.join(__dirname, '..', 'uploads', 'fine-proofs');
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive:true });
@@ -182,8 +186,22 @@ router.post('/upload-fine-proof', uploadFineProof.single('proof'), async (req,re
         if (!rows.length) return res.status(404).json({ success:false, message:'Data denda tidak ditemukan.' });
         const invalid = rows.filter(r=> r.finePaymentStatus !== 'awaiting_proof');
         if (invalid.length) return res.status(400).json({ success:false, message:'Ada denda bukan status awaiting_proof.' });
-        const relPath = '/uploads/fine-proofs/' + path.basename(req.file.path);
-        await pool.query(`UPDATE loans SET finePaymentStatus='pending_verification', finePaymentProof=? WHERE user_id=? AND id IN (${placeholders})`, [relPath, userId, ...ids]);
+        let proofUrl;
+        if (useCloudinaryFine) {
+            try {
+                const folder = process.env.CLOUDINARY_FOLDER_FINES || 'pinjam-kuy/fine-proofs';
+                const base64 = req.file.buffer.toString('base64');
+                const dataUri = 'data:' + (req.file.mimetype || 'image/jpeg') + ';base64,' + base64;
+                const up = await cloudinary.uploader.upload(dataUri, { folder, resource_type: 'image' });
+                proofUrl = up.secure_url;
+            } catch (e) {
+                console.error('[Cloudinary Fine Proof] Gagal upload:', e.message);
+                return res.status(500).json({ success:false, message:'Gagal upload ke Cloudinary.' });
+            }
+        } else {
+            proofUrl = '/uploads/fine-proofs/' + path.basename(req.file.path);
+        }
+        await pool.query(`UPDATE loans SET finePaymentStatus='pending_verification', finePaymentProof=? WHERE user_id=? AND id IN (${placeholders})`, [proofUrl, userId, ...ids]);
 
         // --- NOTIFICATION INSERT (ADMIN AWARE) ---
         try {
@@ -203,12 +221,11 @@ router.post('/upload-fine-proof', uploadFineProof.single('proof'), async (req,re
             const totalAmount = rows.reduce((sum,r)=> sum + (Number(r.fineAmount)||0), 0);
             const method = rows[0]?.finePaymentMethod || null;
             const loanIdsJson = JSON.stringify(ids);
-            await pool.query(`INSERT INTO fine_payment_notifications (user_id, loan_ids, amount_total, method, proof_url, status) VALUES (?,?,?,?,?,'pending_verification')`, [userId, loanIdsJson, totalAmount, method, relPath]);
+            await pool.query(`INSERT INTO fine_payment_notifications (user_id, loan_ids, amount_total, method, proof_url, status) VALUES (?,?,?,?,?,'pending_verification')`, [userId, loanIdsJson, totalAmount, method, proofUrl]);
         } catch (notifyErr) {
             console.warn('[FINE][NOTIFY] gagal membuat notifikasi pembayaran denda:', notifyErr.message);
         }
-
-        return res.json({ success:true, proofUrl: relPath, updatedIds: ids, status:'pending_verification' });
+        return res.json({ success:true, proofUrl, updatedIds: ids, status:'pending_verification' });
     } catch (e){
         console.error('Error upload-fine-proof:', e);
         return res.status(500).json({ success:false, message:'Gagal upload bukti.' });

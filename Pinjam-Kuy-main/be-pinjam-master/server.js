@@ -567,7 +567,15 @@ function startServer(port, attempt = 1, maxAttempts = 8) {
     });
 }
 
-startServer(INITIAL_PORT);
+// Jika berjalan di Vercel (serverless) jangan panggil listen langsung
+if (process.env.VERCEL) {
+    console.log('[MODE] Vercel serverless - tidak memanggil app.listen langsung');
+} else {
+    startServer(INITIAL_PORT);
+}
+
+// Export app untuk Vercel (@vercel/node)
+module.exports = app;
 
 // Pastikan kolom & isi kodePinjam dibangkitkan untuk semua baris lama setelah startup
 async function ensureLoanKodePinjam(pool){

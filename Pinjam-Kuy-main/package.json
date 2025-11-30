@@ -13,6 +13,7 @@
     "bcrypt": "^6.0.0",
     "browserify-zlib": "^0.2.0",
     "buffer": "^6.0.3",
+    "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
@@ -41,7 +42,7 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build",
+    "build": "CI=false craco build",
     "test": "craco test",
     "eject": "react-scripts eject"
   },

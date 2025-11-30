@@ -7,7 +7,6 @@
 # --- Core Dependencies & Build Artifacts ---
 node_modules/
 be-pinjam-master/node_modules/
-build/
 dist/
 
 # --- Runtime & Generated Uploads (do not version) ---
@@ -53,3 +52,4 @@ Thumbs.db
 *.orig
 
 # End of extended ignore rules
+.vercel
