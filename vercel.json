@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "backend/be-pinjam-master/api/index.js", "use": "@vercel/node" },
+    { "src": "frontend/package.json", "use": "@vercel/static-build" }
+  ],
+  "functions": {
+    "backend/be-pinjam-master/api/index.js": {
+      "includeFiles": "backend/be-pinjam-master/uploads/**"
+    }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "backend/be-pinjam-master/api/index.js" },
+    { "src": "/(.*)", "dest": "frontend/build/$1" }
+  ]
+}
