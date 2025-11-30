@@ -480,6 +480,21 @@ app.get('/api/debug/users', async (req, res) => {
     }
 });
 
+// --- 4b. Serve Frontend Build (React) ---
+// Di produksi, kita akan melayani file build React dari satu server Express ini
+const buildDir = path.join(__dirname, '..', 'build');
+if (fs.existsSync(buildDir)) {
+    app.use(express.static(buildDir));
+    // Catch-all untuk route non-API agar React Router bekerja
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) return next();
+        res.sendFile(path.join(buildDir, 'index.html'));
+    });
+    console.log('[STATIC] Serving React build dari:', buildDir);
+} else {
+    console.warn('[STATIC] Build folder tidak ditemukan:', buildDir, '-> jalankan build FE terlebih dahulu.');
+}
+
 // Endpoint debug manual untuk memicu impor schema kembali (NON-PRODUCTION)
 app.post('/api/debug/import-schema', async (req, res) => {
     try {
